@@ -57,9 +57,17 @@ def policy_evaluation(P, nS, nA, policy, gamma=0.9, tol=1e-3):
     ############################
     # YOUR IMPLEMENTATION HERE #
 
-    ############################
-    return value_function
+    while True:
+        delta = 0
+        for s in range(nS):
+            v, a = value_function[s], policy[s]
+            value_function[s] = sum([prob * (rew + gamma * value_function[next_s]) for (prob, next_s, rew, _) in P[s][a]])
+            delta = max(delta, abs(v-value_function[s]))
+        if delta < tol:
+            break
 
+    ###############################################
+    return value_function
 
 def policy_improvement(P, nS, nA, value_from_policy, policy, gamma=0.9):
     """Given the value function from policy improve the policy.
@@ -86,6 +94,16 @@ def policy_improvement(P, nS, nA, value_from_policy, policy, gamma=0.9):
     ############################
     # YOUR IMPLEMENTATION HERE #
 
+    for s in range(nS):
+
+        best_action, best_q = None, -float('inf')
+        for a in range(nA):
+            this_q = sum([prob * (rew + gamma * value_from_policy[next_s]) for (prob, next_s, rew, _) in P[s][a]])
+            if this_q > best_q:
+                best_action, best_q = a, this_q
+
+        new_policy[s] = best_action
+
     ############################
     return new_policy
 
@@ -108,11 +126,24 @@ def policy_iteration(P, nS, nA, gamma=0.9, tol=10e-3):
     policy: np.ndarray[nS]
     """
 
+    #Initialization
     value_function = np.zeros(nS)
     policy = np.zeros(nS, dtype=int)
 
     ############################
     # YOUR IMPLEMENTATION HERE #
+    while True:
+        #1) Evaluate current Policy
+        value_from_policy = policy_evaluation(P, nS, nA, policy, gamma, tol)
+
+        #2) New policy = greedy(Old policy)
+        new_policy = policy_improvement(P, nS, nA, value_from_policy, policy, gamma)
+
+        #3) Check if policy is stable.
+        if (new_policy == policy).all():
+            break
+
+        policy = new_policy
 
     ############################
     return value_function, policy
@@ -141,7 +172,23 @@ def value_iteration(P, nS, nA, gamma=0.9, tol=1e-3):
     ############################
     # YOUR IMPLEMENTATION HERE #
 
-    ############################
+
+    while True:
+        delta = 0
+        for s in range(nS):
+            v = value_function[s]
+            best_v = -float('inf')
+            for a in range(nA):
+                this_v = sum([ prob * (rew + gamma * value_function[next_s]) for (prob, next_s, rew, _) in P[s][a] ])
+                best_v = max(best_v, this_v)
+            value_function[s] = best_v
+            delta = max(delta, abs(v-value_function[s]))
+        if delta < tol:
+            break
+
+    policy = policy_improvement(P, nS, nA, value_function, policy, gamma)
+
+        ############################
     return value_function, policy
 
 
@@ -182,13 +229,13 @@ def render_single(env, policy, max_steps=100):
 if __name__ == "__main__":
 
         # comment/uncomment these lines to switch between deterministic/stochastic environments
-    env = gym.make("Deterministic-4x4-FrozenLake-v0")
-    # env = gym.make("Stochastic-4x4-FrozenLake-v0")
+    #env = gym.make("Deterministic-4x4-FrozenLake-v0")
+    env = gym.make("Stochastic-4x4-FrozenLake-v0")
 
-    print("\n" + "-" * 25 + "\nBeginning Policy Iteration\n" + "-" * 25)
+    #print("\n" + "-" * 25 + "\nBeginning Policy Iteration\n" + "-" * 25)
 
-    V_pi, p_pi = policy_iteration(env.P, env.nS, env.nA, gamma=0.9, tol=1e-3)
-    render_single(env, p_pi, 100)
+    #V_pi, p_pi = policy_iteration(env.P, env.nS, env.nA, gamma=0.9, tol=1e-3)
+    #render_single(env, p_pi, 100)
 
     print("\n" + "-" * 25 + "\nBeginning Value Iteration\n" + "-" * 25)
 
